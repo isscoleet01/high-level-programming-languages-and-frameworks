@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "Ноутбук", "category": "Електроніка", "price": 25000, "inStock": true },
+  { "id": 2, "name": "Телефон", "category": "Електроніка", "price": 15000, "inStock": true },
+  { "id": 3, "name": "Стіл", "category": "Меблі", "price": 5000, "inStock": false },
+  { "id": 4, "name": "Крісло", "category": "Меблі", "price": 3500, "inStock": true },
+  { "id": 5, "name": "Книга JavaScript", "category": "Книги", "price": 400, "inStock": true },
+  { "id": 6, "name": "Планшет", "category": "Електроніка", "price": 12000, "inStock": false },
+  { "id": 7, "name": "Книга Python", "category": "Книги", "price": 350, "inStock": true },
+  { "id": 8, "name": "Шафа", "category": "Меблі", "price": 8000, "inStock": true }
+]

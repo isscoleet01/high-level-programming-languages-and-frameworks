@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фільтр JSON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 750px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #f9f9f9;
+        }
+        h1 { color: #2c3e50; }
+        .controls { display: flex; gap: 10px; margin-bottom: 16px; }
+        .controls input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            background: #2980b9;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover { background: #1f6391; }
+        .controls button.reset { background: #7f8c8d; }
+        .controls button.reset:hover { background: #636e72; }
+        #count { margin-bottom: 12px; color: #555; font-size: 14px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #2980b9;
+            color: #fff;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .in { background: #d5f5e3; color: #1e8449; }
+        .out { background: #fadbd8; color: #922b21; }
+    </style>
+</head>
+<body>
+    <h1>Фільтр JSON</h1>
+    <div class="controls">
+        <input type="text" id="filter-input" placeholder="Введіть категорію або назву...">
+        <button onclick="applyFilter()">Фільтрувати</button>
+        <button class="reset" onclick="resetFilter()">Скинути</button>
+    </div>
+    <p id="count"></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Назва</th>
+                <th>Категорія</th>
+                <th>Ціна (грн)</th>
+                <th>Наявність</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+    <script>
+        let allData = [];
+
+        fetch('products.json')
+            .then(response => response.text())
+            .then(text => {
+                allData = JSON.parse(text);
+                renderTable(allData);
+            })
+            .catch(() => console.log('ERROR'));
+
+        document.getElementById('filter-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') applyFilter();
+        });
+
+        function applyFilter() {
+            const filterValue = document.getElementById('filter-input').value.trim().toLowerCase();
+            if (!filterValue) {
+                renderTable(allData);
+                return;
+            }
+            const filtered = allData.filter(item =>
+                item.category.toLowerCase().includes(filterValue) ||
+                item.name.toLowerCase().includes(filterValue)
+            );
+            renderTable(filtered);
+        }
+
+        function resetFilter() {
+            document.getElementById('filter-input').value = '';
+            renderTable(allData);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            document.getElementById('count').textContent = `Знайдено: ${data.length} елемент(ів)`;
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                const nameTd = document.createElement('td');
+                nameTd.textContent = item.name;
+                const catTd = document.createElement('td');
+                catTd.textContent = item.category;
+                const priceTd = document.createElement('td');
+                priceTd.textContent = item.price;
+                const stockTd = document.createElement('td');
+                const badge = document.createElement('span');
+                badge.className = 'badge ' + (item.inStock ? 'in' : 'out');
+                badge.textContent = item.inStock ? 'В наявності' : 'Немає';
+                stockTd.appendChild(badge);
+                tr.appendChild(nameTd);
+                tr.appendChild(catTd);
+                tr.appendChild(priceTd);
+                tr.appendChild(stockTd);
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

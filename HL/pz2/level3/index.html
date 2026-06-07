@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат-кімнати</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; height: 100vh; }
+        .app { display: flex; height: 100vh; }
+
+        .sidebar {
+            width: 260px;
+            background: #16213e;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #0f3460;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 16px;
+            background: #0f3460;
+            font-size: 17px;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .new-room { padding: 12px; }
+        .new-room input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #eee;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+        .new-room button {
+            width: 100%;
+            margin-top: 6px;
+            padding: 8px;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .new-room button:hover { background: #c73652; }
+
+        .room-list { flex: 1; overflow-y: auto; }
+        .room-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .room-item:hover { background: #0f3460; }
+        .room-item.active { background: #e94560; }
+        .room-name { font-size: 14px; }
+        .del-btn {
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .room-item.active .del-btn { color: #ffc0cb; }
+        .del-btn:hover { background: rgba(0,0,0,0.25); color: #fff; }
+
+        .author-select { padding: 12px; border-top: 1px solid #0f3460; }
+        .author-select label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; }
+        .author-select select {
+            width: 100%;
+            padding: 7px;
+            background: #1a1a2e;
+            color: #eee;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .chat { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .chat-header {
+            padding: 16px;
+            background: #0f3460;
+            font-size: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 65%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .message.own {
+            align-self: flex-end;
+            background: #e94560;
+            border-bottom-right-radius: 4px;
+        }
+        .message.other {
+            align-self: flex-start;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-bottom-left-radius: 4px;
+        }
+        .msg-author { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+        .message.own .msg-author { color: #ffc0cb; }
+        .msg-time { font-size: 10px; color: #aaa; margin-top: 4px; text-align: right; }
+
+        .message-input {
+            padding: 12px 16px;
+            background: #16213e;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            gap: 8px;
+        }
+        .message-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        .message-input button {
+            padding: 10px 20px;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .message-input button:hover { background: #c73652; }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const STORAGE_KEY = 'pz2_chat_data';
+const USERS = ['Денис', 'Аліна', 'Максим', 'Олена'];
+
+function loadData() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : { rooms: [], messages: {} };
+    } catch {
+        return { rooms: [], messages: {} };
+    }
+}
+
+function App() {
+    const [data, setData] = useState(loadData);
+    const [activeRoom, setActiveRoom] = useState(null);
+    const [newRoomName, setNewRoomName] = useState('');
+    const [msgText, setMsgText] = useState('');
+    const [currentUser, setCurrentUser] = useState(USERS[0]);
+    const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }, [data]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [data.messages, activeRoom]);
+
+    function createRoom() {
+        const name = newRoomName.trim();
+        if (!name) return;
+        const room = { id: Date.now(), name };
+        setData(prev => ({
+            rooms: [...prev.rooms, room],
+            messages: { ...prev.messages, [room.id]: [] }
+        }));
+        setActiveRoom(room.id);
+        setNewRoomName('');
+    }
+
+    function deleteRoom(id) {
+        setData(prev => {
+            const { [id]: _, ...rest } = prev.messages;
+            return { rooms: prev.rooms.filter(r => r.id !== id), messages: rest };
+        });
+        if (activeRoom === id) setActiveRoom(null);
+    }
+
+    function sendMessage() {
+        const text = msgText.trim();
+        if (!text || !activeRoom) return;
+        const msg = {
+            id: Date.now(),
+            author: currentUser,
+            text,
+            time: new Date().toLocaleTimeString('uk', { hour: '2-digit', minute: '2-digit' })
+        };
+        setData(prev => ({
+            ...prev,
+            messages: {
+                ...prev.messages,
+                [activeRoom]: [...(prev.messages[activeRoom] || []), msg]
+            }
+        }));
+        setMsgText('');
+    }
+
+    const activeRoomObj = data.rooms.find(r => r.id === activeRoom);
+    const roomMessages = activeRoom ? (data.messages[activeRoom] || []) : [];
+
+    return (
+        <div className="app">
+            <div className="sidebar">
+                <div className="sidebar-header">Чат-кімнати</div>
+                <div className="new-room">
+                    <input
+                        value={newRoomName}
+                        onChange={e => setNewRoomName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && createRoom()}
+                        placeholder="Назва кімнати..."
+                    />
+                    <button onClick={createRoom}>+ Створити</button>
+                </div>
+                <div className="room-list">
+                    {data.rooms.map(room => (
+                        <div
+                            key={room.id}
+                            className={`room-item ${activeRoom === room.id ? 'active' : ''}`}
+                            onClick={() => setActiveRoom(room.id)}
+                        >
+                            <span className="room-name"># {room.name}</span>
+                            <span
+                                className="del-btn"
+                                onClick={e => { e.stopPropagation(); deleteRoom(room.id); }}
+                            >✕</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="author-select">
+                    <label>Ви входите як:</label>
+                    <select value={currentUser} onChange={e => setCurrentUser(e.target.value)}>
+                        {USERS.map(u => <option key={u}>{u}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            <div className="chat">
+                {activeRoomObj ? (
+                    <>
+                        <div className="chat-header"># {activeRoomObj.name}</div>
+                        <div className="messages">
+                            {roomMessages.map(msg => (
+                                <div
+                                    key={msg.id}
+                                    className={`message ${msg.author === currentUser ? 'own' : 'other'}`}
+                                >
+                                    <div className="msg-author">{msg.author}</div>
+                                    <div>{msg.text}</div>
+                                    <div className="msg-time">{msg.time}</div>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <div className="message-input">
+                            <input
+                                value={msgText}
+                                onChange={e => setMsgText(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                                placeholder="Введіть повідомлення..."
+                            />
+                            <button onClick={sendMessage}>Надіслати</button>
+                        </div>
+                    </>
+                ) : (
+                    <div className="empty-state">
+                        Оберіть або створіть кімнату для початку чату
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
