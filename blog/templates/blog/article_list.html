@@ -1,0 +1,57 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Список статей{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Статті</h1>
+
+{% for article in page_obj %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{% url 'article_detail' article.pk %}">{{ article.title }}</a>
+        </h5>
+        <p class="card-text text-muted">
+            {% if article.category %}Категорія: <strong>{{ article.category.name }}</strong> &nbsp;|&nbsp; {% endif %}
+            {{ article.published_at|date:"d.m.Y H:i" }}
+        </p>
+        <p class="card-text">{{ article.text|truncatewords:30 }}</p>
+        <a href="{% url 'article_detail' article.pk %}" class="btn btn-sm btn-outline-primary">Читати далі</a>
+    </div>
+</div>
+{% empty %}
+<p class="text-muted">Статей ще немає. Додайте їх через <a href="/admin/">адмін-панель</a>.</p>
+{% endfor %}
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&#8249; Попередня</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">&#8249; Попередня</span>
+        </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Наступна &#8250;</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Наступна &#8250;</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
